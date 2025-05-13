@@ -284,10 +284,10 @@
 
 # st.markdown("</div>", unsafe_allow_html=True)  # Close chat-container
 
-
 import streamlit as st
 import requests
 import os
+import re
 
 # SET YOUR DEEPSEEK API KEY
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-0d87f9cd12a34851adb3de02ad3b9ff0")
@@ -348,8 +348,12 @@ if "chat_pairs" not in st.session_state:
     st.session_state.chat_history = [{
         "role": "system",
         "content": (
-            "You are SMILE's relationship support assistant. Only respond to mood, task, and streak suggestions "
-            "related to romantic, sibling, parental, friend, or colleague relationships."
+            "You are SMILE AI, a relationship assistant chatbot. "
+            "Only answer questions strictly related to these 5 categories: "
+            "1) Romantic Partner, 2) Parental/Family, 3) Colleague, 4) Close Friend, and 5) Sibling. "
+            "Only provide emotional support, mood/streak-based suggestions, or bonding task ideas. "
+            "❌ If the user asks about general knowledge, technical questions, or anything outside relationships, reply: "
+            "'Sorry, I'm designed to help only with relationship-based emotional and bonding suggestions. 😊'"
         )
     }]
 
@@ -366,13 +370,23 @@ partner_type = st.selectbox("Select your partner type:", [
     "Sibling (Brother, Sister, Twin, Step-sibling)"
 ])
 
-# ✅ INPUT
+# ✅ Simple filter function for obvious off-topic questions
+def is_unrelated(message):
+    keywords = ["capital", "weather", "python", "AI model", "machine learning", "sports", "math", "programming", "time in", "translate", "news"]
+    return any(kw in message.lower() for kw in keywords)
+
+# ✅ INPUT + RESPONSE
 user_input = st.text_input("💬 Type your message here")
 
 if st.button("🚀 Send") and user_input.strip():
     st.session_state.chat_history.append({"role": "user", "content": user_input})
-    with st.spinner("Thinking..."):
-        reply = call_deepseek(st.session_state.chat_history)
+
+    if is_unrelated(user_input):
+        reply = "⚠️ Sorry, I'm designed only to help with relationship-based emotional support, tasks, and streaks for your selected partner type."
+    else:
+        with st.spinner("Thinking..."):
+            reply = call_deepseek(st.session_state.chat_history)
+
     st.session_state.chat_history.append({"role": "assistant", "content": reply})
     st.session_state.chat_pairs.append((user_input, reply))
     st.rerun()
